@@ -3,6 +3,7 @@
 #include <sysexits.h>
 #include "signal_flag.h"
 #include "logger.h"
+#include "answer.h"
 
 int main(int argc, char** argv)
 {
@@ -16,8 +17,8 @@ int main(int argc, char** argv)
 	log_debug("Logger has been started");
 
 	/* Start the signal handlers. */
-	enable_sigterm_flagging();
-	enable_sigint_flagging();
+	enable_signal_flag(SIGTERM);
+	enable_signal_flag(SIGINT);
 	log_debug("Signal flaggers have been started");
 
 
@@ -52,27 +53,30 @@ int main(int argc, char** argv)
 			log_cb,
 			log_cb_arg,
 			MHD_OPTION_END);
-
 	if (daemon == NULL) {
 		log_crit("Unable to start daemon");
 		/* TODO: any cleanup */
 		stop_logger();
 		return EX_SOFTWARE;
-	} else {
-		log_notice("Daemon started");
-
-		while (flagged() && !sigterm_flagged() && !sigint_flagged()) {
-			log_debug("Flag received");
-			/* do something? */
-		}
-
-		log_info("Stopping daemon");
-		MHD_stop_daemon(daemon);
-		/*TODO: any cleanup */
-		
-		log_notice("Daemon stopped");
-		stop_logger();
-		return EX_OK;
 	}
+	
+	log_notice("Daemon started");
+
+	while (sleep_until_signal_flag()
+			&& signal_flag_count(SIGTERM) > 0
+			&& signal_flag_count(SIGINT) > 0) {
+		log_debug("Flag received");
+		/* do something? */
+		reset_all_signal_flag_counts();
+	}
+
+	log_info("Stopping daemon");
+	MHD_stop_daemon(daemon);
+	/*TODO: any cleanup */
+		
+	log_notice("Daemon stopped");
+	disable_all_signal_flags();
+	stop_logger();
+	return EX_OK;
 }
 
