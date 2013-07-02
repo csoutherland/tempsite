@@ -8,10 +8,9 @@
 int main(int argc, char** argv)
 {
 	struct MHD_Daemon* daemon;
+	daemon_state_t dstate;
 
-	/* TODO: get command line args */
-	enable_debug = ENABLE_DEBUG;
-	port = WEBSERVER_PORT;
+	port = 8080;
 
 	start_logger();
 	log_debug("Logger has been started");
@@ -22,7 +21,7 @@ int main(int argc, char** argv)
 	log_debug("Signal flaggers have been started");
 
 
-	if (enable_debug) {
+	if (ENABLE_DEBUG) {
 		daemon_opts = MHD_USE_DEBUG | MHD_USE_THREAD_PER_CONNECTION;
 		log_debug("Debug mode will be enabled for microhttpd");
 	} else {
