@@ -1,6 +1,8 @@
 #ifndef _TEMPSITE_ANSWER_H_
 #define _TEMPSITE_ANSWER_H_
 
+#include <microhttpd.h>
+
 int answer(
 		void* daemon_state,
 		struct MHD_Connection* connection,

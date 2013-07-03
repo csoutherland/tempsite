@@ -1,19 +1,40 @@
 #include <config.h>
 #include "answer.h"
 #include <string.h>
+#include <syslog.h>
+#include <microhttpd.h>
 
 #define SMATCH(string,literal) 0==strncmp(string,""literal,strlen(literal)+1)
 
-extern unsigned char _binary_stuph_logo_png_start[];
-extern size_t _binary_stuph_logo_png_size;
+#define CSS "body{background-color:#000000;color:#FFFFFF;}" \
+	"div#page{margin-left:auto;margin-right:auto;width:400;" \
+	"vertical-align:middle;}div#content{width:400;}"
 
-static int redirect(struct MHD_Connection* connection)
+#define JS "document.onload = function(){" \
+	"if(window.innerWidth>800&&window.innerWidth>=window.innerHeight){" \
+	"document.getElementById(\"logo\").style.float=\"left\";" \
+	"document.getElementById(\"content\").style.float=\"right\";}};" \
+
+#define START2SUBTITLE "<html><head><title>Stuph Labs"
+#define SUBTITLE2IMGDOMAIN "</title><style type=\"text/css\">"CSS"</style>" \
+	"</head><body><div id=\"page\"><img alt=\"Stuph Labs\" id=\"logo\" " \
+	"src=\""
+#define IMGDOMAIN2H1 "/stuph_logo.png\"/><div id=\"content\"><h1>"
+#define H12P "</h1><p>"
+#define P2JS "</p></div></div><script type=\"text/javascript\">"
+#define JS2END "</script></body></html>"
+
+extern unsigned char _binary_stuph_logo_png_start;
+extern unsigned char _binary_stuph_logo_png_end;
+
+/*
+static int respond_redirect(struct MHD_Connection* connection)
 {
-	char* page = "<html><head><title>Stuph Labs (Redirecting...)</title>"
-		"</head><body><img src=\"http://stuph.net/stuph_logo.png\" />"
-		"<h1>Redirecting to Stuph Labs...<h1><p>To go to the main "
-		"Stuph Labs website, <a href=\"http://stuph.net/\">click "
-		"here</a>.</p></body></html>";
+	char* page = START2SUBTITLE " (Redirecting...)"
+		SUBTITLE2IMGDOMAIN "http://stuph.net"
+		IMGDOMAIN2H1 "Redirecting to Stuph Labs..."
+		H12P "To go to the main Stuph Labs website, <a "
+		"href=\"http://stuph.net/\">click here</a>." P2JS JS JS2END;
 
 	struct MHD_Response* response = MHD_create_response_from_buffer(
 			strlen(page),
@@ -21,39 +42,40 @@ static int redirect(struct MHD_Connection* connection)
 			MHD_RESPMEM_PERSISTENT);
 
 	if (response == NULL) {
-		log_crit("Unable to create response for redirect");
+		syslog(LOG_CRIT, "Unable to create response for redirect");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_add_response_header(
 			response,
 			MHD_HTTP_HEADER_LOCATION,
 			"http://stuph.net/")) {
-		log_crit("Unable to add header for redirect");
+		syslog(LOG_CRIT, "Unable to add header for redirect");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_add_response_header(
 			response,
 			MHD_HTTP_HEADER_CONTENT_TYPE,
 			"text/html")) {
-		log_crit("Unable to add content type for redirect");
+		syslog(LOG_CRIT, "Unable to add content type for redirect");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_queue_response(
 			connection,
 			MHD_HTTP_TEMPORARY_REDIRECT,
 			response)) {
-		log_crit("Unable to queue response for redirect");
+		syslog(LOG_CRIT, "Unable to queue response for redirect");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_add_response_footer(
 			response,
 			MHD_HTTP_HEADER_CONNECTION,
 			"close")) {
-		log_crit("Unable to close connection for redirect");
+		syslog(LOG_CRIT, "Unable to close connection for redirect");
 		return MHD_NO;
 	} else {
 		MHD_destroy_response(response);
 		return MHD_YES;
 	}
 }
+*/
 
-static int options(struct MHD_Connection* connection)
+static int respond_options(struct MHD_Connection* connection)
 {
 	struct MHD_Response* response = MHD_create_response_from_buffer(
 			0,
@@ -61,7 +83,7 @@ static int options(struct MHD_Connection* connection)
 			MHD_RESPMEM_PERSISTENT);
 
 	if (response == NULL) {
-		log_crit("Unable to create response for options");
+		syslog(LOG_CRIT, "Unable to create response for options");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_add_response_header(
 			response,
@@ -69,19 +91,19 @@ static int options(struct MHD_Connection* connection)
 			MHD_HTTP_METHOD_GET","
 			MHD_HTTP_METHOD_HEAD","
 			MHD_HTTP_METHOD_OPTIONS)) {
-		log_crit("Unable to add header for options");
+		syslog(LOG_CRIT, "Unable to add header for options");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_queue_response(
 			connection,
 			MHD_HTTP_OK,
 			response)) {
-		log_crit("Unable to queue response for options");
+		syslog(LOG_CRIT, "Unable to queue response for options");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_add_response_footer(
 			response,
 			MHD_HTTP_HEADER_CONNECTION,
 			"close")) {
-		log_crit("Unable to close connection for options");
+		syslog(LOG_CRIT, "Unable to close connection for options");
 		return MHD_NO;
 	} else {
 		MHD_destroy_response(response);
@@ -89,14 +111,14 @@ static int options(struct MHD_Connection* connection)
 	}
 }
 
-static int not_allowed(struct MHD_Connection* connection)
+static int respond_not_allowed(struct MHD_Connection* connection)
 {
-	char* page = "<html><head><title>Stuph Labs (Method Not Allowed)"
-		"</title></head><body><img src=\"/stuph_logo.png\" /><h1>"
-		"Method Not Allowed<h1><p>The request method that was sent to "
-		"the server is not allowed for this particular URL. Please "
-		"use the HTTP GET, HEAD, or OPTIONS methods to attempt to "
-		"access this URL.</p></body></html>";
+	char* page = START2SUBTITLE " (Method Not Allowed)"
+		SUBTITLE2IMGDOMAIN IMGDOMAIN2H1 "Method Not Allowed"
+		H12P "The request method that was sent to the server is not "
+		"allowed for this particular URL. Please use the HTTP GET, "
+		"HEAD, or OPTIONS methods to attempt to access this URL."
+		P2JS JS JS2END;
 
 	struct MHD_Response* response = MHD_create_response_from_buffer(
 			strlen(page),
@@ -104,7 +126,7 @@ static int not_allowed(struct MHD_Connection* connection)
 			MHD_RESPMEM_PERSISTENT);
 
 	if (response == NULL) {
-		log_crit("Unable to create response for not allowed");
+		syslog(LOG_CRIT, "Unable to create response for not allowed");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_add_response_header(
 			response,
@@ -112,25 +134,25 @@ static int not_allowed(struct MHD_Connection* connection)
 			MHD_HTTP_METHOD_GET","
 			MHD_HTTP_METHOD_HEAD","
 			MHD_HTTP_METHOD_OPTIONS)) {
-		log_crit("Unable to add header for not allowed");
+		syslog(LOG_CRIT, "Unable to add header for not allowed");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_add_response_header(
 			response,
 			MHD_HTTP_HEADER_CONTENT_TYPE,
 			"text/html")) {
-		log_crit("Unable to add content type for not allowed");
+		syslog(LOG_CRIT, "Unable to add content type for not allowed");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_queue_response(
 			connection,
 			MHD_HTTP_METHOD_NOT_ALLOWED,
 			response)) {
-		log_crit("Unable to queue response for not allowed");
+		syslog(LOG_CRIT, "Unable to queue response for not allowed");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_add_response_footer(
 			response,
 			MHD_HTTP_HEADER_CONNECTION,
 			"close")) {
-		log_crit("Unable to close connection for not allowed");
+		syslog(LOG_CRIT, "Unable to close connection for not allowed");
 		return MHD_NO;
 	} else {
 		MHD_destroy_response(response);
@@ -138,13 +160,12 @@ static int not_allowed(struct MHD_Connection* connection)
 	}
 }
 
-static int not_found(struct MHD_Connection* connection)
+static int respond_not_found(struct MHD_Connection* connection)
 {
-	char* page = "<html><head><title>Stuph Labs (Page Not Found)</title>"
-		"</head><body><img src=\"http://stuph.net/stuph_logo.png\" />"
-		"<h1>Page Not Found<h1><p>To go to the main Stuph Labs "
-		"website, <a href=\"http://stuph.net/\">click here</a>.</p>"
-		"</body></html>";
+	char* page = START2SUBTITLE " (Page Not Found)"
+		SUBTITLE2IMGDOMAIN IMGDOMAIN2H1 "Page Not Found"
+		H12P "To go to the main Stuph Labs website, <a "
+		"href=\"http://stuph.net/\">click here</a>." P2JS JS JS2END;
 
 	struct MHD_Response* response = MHD_create_response_from_buffer(
 			strlen(page),
@@ -152,25 +173,25 @@ static int not_found(struct MHD_Connection* connection)
 			MHD_RESPMEM_PERSISTENT);
 
 	if (response == NULL) {
-		log_crit("Unable to create response for not found");
+		syslog(LOG_CRIT, "Unable to create response for not found");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_add_response_header(
 			response,
 			MHD_HTTP_HEADER_CONTENT_TYPE,
 			"text/html")) {
-		log_crit("Unable to add content type for not found");
+		syslog(LOG_CRIT, "Unable to add content type for not found");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_queue_response(
 			connection,
 			MHD_HTTP_NOT_FOUND,
 			response)) {
-		log_crit("Unable to queue response for not found");
+		syslog(LOG_CRIT, "Unable to queue response for not found");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_add_response_footer(
 			response,
 			MHD_HTTP_HEADER_CONNECTION,
 			"close")) {
-		log_crit("Unable to close connection for not found");
+		syslog(LOG_CRIT, "Unable to close connection for not found");
 		return MHD_NO;
 	} else {
 		MHD_destroy_response(response);
@@ -178,13 +199,12 @@ static int not_found(struct MHD_Connection* connection)
 	}
 }
 
-static int index(struct MHD_Connection* connection)
+static int respond_index(struct MHD_Connection* connection)
 {
-	char* page = "<html><head><title>Stuph Labs</title></head><body>"
-		"<img src=\"http://stuph.net/stuph_logo.png\" /><h1>Stuph "
-		"Labs' New Website<h1><p>New websites for Stuph Labs and "
-		"several of its projects are currently being planned,  Stay "
-		"tuned...</p></body></html>";
+	char* page = START2SUBTITLE SUBTITLE2IMGDOMAIN IMGDOMAIN2H1
+		"Stuph Labs' New Website" H12P "New websites for Stuph Labs "
+		"and several of its projects are currently being planned,  "
+		"Stay tuned..." P2JS JS JS2END;
 
 	struct MHD_Response* response = MHD_create_response_from_buffer(
 			strlen(page),
@@ -192,19 +212,19 @@ static int index(struct MHD_Connection* connection)
 			MHD_RESPMEM_PERSISTENT);
 
 	if (response == NULL) {
-		log_crit("Unable to create response for index");
+		syslog(LOG_CRIT, "Unable to create response for index");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_add_response_header(
 			response,
 			MHD_HTTP_HEADER_CONTENT_TYPE,
 			"text/html")) {
-		log_crit("Unable to add content type for index");
+		syslog(LOG_CRIT, "Unable to add content type for index");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_queue_response(
 			connection,
 			MHD_HTTP_OK,
 			response)) {
-		log_crit("Unable to queue response for index");
+		syslog(LOG_CRIT, "Unable to queue response for index");
 		return MHD_NO;
 	} else {
 		MHD_destroy_response(response);
@@ -212,10 +232,11 @@ static int index(struct MHD_Connection* connection)
 	}
 }
 
-static int logo(struct MHD_Connection* connection)
+static int respond_logo(struct MHD_Connection* connection)
 {
-	unsigned char* logo = _binary_stuph_logo_png_start;
-	size_t logo_size = _binary_stuph_logo_png_size;
+	unsigned char* logo = &_binary_stuph_logo_png_start;
+	size_t logo_size = &_binary_stuph_logo_png_end 
+		- &_binary_stuph_logo_png_start;
 
 	struct MHD_Response* response = MHD_create_response_from_buffer(
 			logo_size,
@@ -223,19 +244,19 @@ static int logo(struct MHD_Connection* connection)
 			MHD_RESPMEM_PERSISTENT);
 
 	if (response == NULL) {
-		log_crit("Unable to create response for logo");
+		syslog(LOG_CRIT, "Unable to create response for logo");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_add_response_header(
 			response,
 			MHD_HTTP_HEADER_CONTENT_TYPE,
 			"image/png")) {
-		log_crit("Unable to add content type for logo");
+		syslog(LOG_CRIT, "Unable to add content type for logo");
 		return MHD_NO;
 	} else if (MHD_NO == MHD_queue_response(
 			connection,
 			MHD_HTTP_OK,
 			response)) {
-		log_crit("Unable to queue response for logo");
+		syslog(LOG_CRIT, "Unable to queue response for logo");
 		return MHD_NO;
 	} else {
 		MHD_destroy_response(response);
@@ -254,13 +275,19 @@ int answer(
 		void** con_cls)
 {
 	if (*con_cls == NULL) {
-		if (SMATCH(
+		if (!(SMATCH(
 				MHD_lookup_connection_value(
 					connection,
-					NULL,
+					MHD_HEADER_KIND,
 					"Host"),
-				"stuph.net")) {
-			return redirect(connection);
+				"stuph.net"))) {
+			/*return respond_redirect(connection);*/
+			syslog(LOG_INFO, "wrong host");
+		} else if (version == NULL
+				&& upload_data_size == NULL
+				&& upload_data == NULL
+				&& cls == NULL) {
+			syslog(LOG_DEBUG, "lotsa stuff is null");
 		}
 	}
 
@@ -269,34 +296,34 @@ int answer(
 			|| SMATCH(url, "/index.html")) {
 		/* main page */
 		if (SMATCH(method, MHD_HTTP_METHOD_OPTIONS)) {
-			return options(connection);
+			return respond_options(connection);
 		} else if (!(SMATCH(method, MHD_HTTP_METHOD_GET)
 				|| SMATCH(method, MHD_HTTP_METHOD_HEAD))) {
-			return not_allowed(connection);
+			return respond_not_allowed(connection);
 		} else if (*con_cls == NULL) {
 			*con_cls = connection;
 			return MHD_YES;
 		} else {
-			return index();
+			return respond_index(connection);
 		}
 	} else if (SMATCH(url, "/stuph_logo.png")) {
 		/* logo */
 		if (SMATCH(method, MHD_HTTP_METHOD_OPTIONS)) {
-			return options(connection);
+			return respond_options(connection);
 		} else if (!(SMATCH(method, MHD_HTTP_METHOD_GET)
 				|| SMATCH(method, MHD_HTTP_METHOD_HEAD))) {
-			return not_allowed(connection);
+			return respond_not_allowed(connection);
 		} else if (*con_cls == NULL) {
 			*con_cls = connection;
 			return MHD_YES;
 		} else {
-			/* serve page */
+			return respond_logo(connection);
 		}
 	} else if (SMATCH(url, "*")
 			&& SMATCH(method, MHD_HTTP_METHOD_OPTIONS)) {
-		return options(connection);
+		return respond_options(connection);
 	} else {
-		return not_found();
+		return respond_not_found(connection);
 	}
 }
 

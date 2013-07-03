@@ -1,6 +1,7 @@
 #include <config.h>
 #include "signal_flag.h"
 #include <signal.h>
+#include <stdlib.h>
 
 typedef struct _signal_flag_struct_ {
 	int signum;
@@ -63,11 +64,11 @@ int enable_signal_flag(const int signum)
 
 	/* Prepare the new sigaction struct. */
 	nflag->current.sa_handler = &signal_handler;
-	nflag->current.sa_mask = NULL;
+	sigemptyset(&(nflag->current.sa_mask));
 	nflag->current.sa_flags = 0;
 
 	/* Enable the signal handler. */
-	errcode = sigaction(signal, &nflag->current, &nflag->old);
+	errcode = sigaction(signum, &nflag->current, &nflag->old);
 
 	if (errcode < 0) {
 		flags = flags->next;
@@ -80,11 +81,14 @@ int enable_signal_flag(const int signum)
 
 int sleep_until_signal_flag()
 {
+	sigset_t emptyset;
+	sigemptyset(&emptyset);
+
 	if (total_count > 0) {
 		return total_count;
 	}
 
-	sigsuspend(NULL);
+	sigsuspend(&emptyset);
 
 	return total_count;
 }
@@ -204,7 +208,7 @@ int disable_all_signal_flags()
 
 	while (flags != NULL) {
 		signal_flag_t tflag = flags;
-		sigaction(signum, &tflag->old, NULL);
+		sigaction(flags->signum, &tflag->old, NULL);
 		flags = tflag->next;
 		free(tflag);
 	}

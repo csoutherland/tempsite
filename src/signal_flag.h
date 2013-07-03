@@ -15,6 +15,15 @@ int reset_all_signal_flag_counts();
 
 int disable_signal_flag(int signum);
 
-int deisable_all_signal_flags();
+int disable_all_signal_flags();
+
+
+
+#define SIGNAL_FLAG_PRESENT      2
+#define SIGNAL_FLAG_OKAY         1
+
+#define SIGNAL_FLAG_DISALLOWED  -1
+#define SIGNAL_FLAG_NOT_PRESENT -2
+#define SIGNAL_FLAG_NOMEM       -3
 
 #endif
