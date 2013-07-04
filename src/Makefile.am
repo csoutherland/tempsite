@@ -1,7 +1,7 @@
 bin_PROGRAMS= stuph_temp_httpd
-stuph_temp_httpd_SOURCES= main.c answer.c signal_flag.c stuph_logo.png.o
-AM_CFLAGS=$(LMHD_CFLAGS)
-stuph_temp_httpd_LDADD=stuph_logo.png.o $(LMHD_LIBS)
+stuph_temp_httpd_SOURCES= main.c answer.c signal_flag.c
+AM_CFLAGS=$(LMHD_CFLAGS) ${PTHREAD_CFLAGS}
+stuph_temp_httpd_LDADD=stuph_logo.png.o $(LMHD_LIBS) ${PTHREAD_LIBS}
 
 # stuph_logo.png.lo: stuph_logo.png
 #      $(AM_V_GEN)$(LD) -r -o "stuph_logo.png.o" -z noexecstack --format=binary "$<"
@@ -19,8 +19,11 @@ stuph_temp_httpd_LDADD=stuph_logo.png.o $(LMHD_LIBS)
 #      $(AM_V_at)echo "non_pic_object='stuph_logo.png.o'" >>"$@"
 #      $(AM_V_at)echo >>"$@"
 
-stuph_logo.png.o: stuph_logo.png
-	$(OBJCOPY) --input binary stuph_logo.png stuph_logo.png.o
+#stuph_logo.png.o: stuph_logo.png
+#	$(OBJCOPY) --input binary stuph_logo.png stuph_logo.png.o
+
+stuph_logo.png.o:
+	$(OBJCOPY) -I binary -O ${BFD_NAME} -B ${BFD_ARCH} stuph_logo.png stuph_logo.png.o
 
 #CLEANFILES= stuph_logo.png.o stuph_logo.png.lo
 CLEANFILES= stuph_logo.png.o

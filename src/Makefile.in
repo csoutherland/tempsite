@@ -32,12 +32,13 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
+build_triplet = @build@
+host_triplet = @host@
 bin_PROGRAMS = stuph_temp_httpd$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/ax_cflags_warn_all_extra.m4 \
-	$(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -50,7 +51,8 @@ am_stuph_temp_httpd_OBJECTS = main.$(OBJEXT) answer.$(OBJEXT) \
 	signal_flag.$(OBJEXT)
 stuph_temp_httpd_OBJECTS = $(am_stuph_temp_httpd_OBJECTS)
 am__DEPENDENCIES_1 =
-stuph_temp_httpd_DEPENDENCIES = stuph_logo.png.o $(am__DEPENDENCIES_1)
+stuph_temp_httpd_DEPENDENCIES = stuph_logo.png.o $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -70,6 +72,8 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
+BFD_ARCH = @BFD_ARCH@
+BFD_NAME = @BFD_NAME@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -97,6 +101,7 @@ LMHD_LIBS = @LMHD_LIBS@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
+OBJCOPY = @OBJCOPY@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
@@ -109,6 +114,9 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
 PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
 PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
+PTHREAD_CC = @PTHREAD_CC@
+PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
+PTHREAD_LIBS = @PTHREAD_LIBS@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
@@ -123,15 +131,24 @@ am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
+ax_pthread_config = @ax_pthread_config@
 bindir = @bindir@
+build = @build@
 build_alias = @build_alias@
+build_cpu = @build_cpu@
+build_os = @build_os@
+build_vendor = @build_vendor@
 builddir = @builddir@
 datadir = @datadir@
 datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+host = @host@
 host_alias = @host_alias@
+host_cpu = @host_cpu@
+host_os = @host_os@
+host_vendor = @host_vendor@
 htmldir = @htmldir@
 includedir = @includedir@
 infodir = @infodir@
@@ -155,9 +172,9 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-stuph_temp_httpd_SOURCES = main.c answer.c signal_flag.c stuph_logo.png.o
-AM_CFLAGS = $(LMHD_CFLAGS)
-stuph_temp_httpd_LDADD = stuph_logo.png.o $(LMHD_LIBS)
+stuph_temp_httpd_SOURCES = main.c answer.c signal_flag.c
+AM_CFLAGS = $(LMHD_CFLAGS) ${PTHREAD_CFLAGS}
+stuph_temp_httpd_LDADD = stuph_logo.png.o $(LMHD_LIBS) ${PTHREAD_LIBS}
 
 #CLEANFILES= stuph_logo.png.o stuph_logo.png.lo
 CLEANFILES = stuph_logo.png.o
@@ -481,8 +498,11 @@ uninstall-am: uninstall-binPROGRAMS
 #      $(AM_V_at)echo "non_pic_object='stuph_logo.png.o'" >>"$@"
 #      $(AM_V_at)echo >>"$@"
 
-stuph_logo.png.o: stuph_logo.png
-	$(OBJCOPY) --input binary stuph_logo.png stuph_logo.png.o
+#stuph_logo.png.o: stuph_logo.png
+#	$(OBJCOPY) --input binary stuph_logo.png stuph_logo.png.o
+
+stuph_logo.png.o:
+	$(OBJCOPY) -I binary -O ${BFD_NAME} -B ${BFD_ARCH} stuph_logo.png stuph_logo.png.o
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
