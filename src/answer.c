@@ -15,11 +15,11 @@
 	"document.getElementById(\"logo\").style.float=\"left\";" \
 	"document.getElementById(\"content\").style.float=\"right\";}};" \
 
-#define START2SUBTITLE "<html><head><title>Stuph Labs"
+#define START2SUBTITLE "<!DOCTYPE HTML SYSTEM><html><head><title>Stuph Labs"
 #define SUBTITLE2IMGDOMAIN "</title><style type=\"text/css\">"CSS"</style>" \
-	"</head><body><div id=\"page\"><img alt=\"Stuph Labs\" id=\"logo\" " \
-	"src=\""
-#define IMGDOMAIN2H1 "/stuph_logo.png\"/><div id=\"content\"><h1>"
+	"</head><body><div id=\"page\"><div id=\"logo\"><img alt=\"Stuph " \
+	"Labs\" src=\""
+#define IMGDOMAIN2H1 "/stuph_logo.png\"/></div><div id=\"content\"><h1>"
 #define H12P "</h1><p>"
 #define P2JS "</p></div></div><script type=\"text/javascript\">"
 #define JS2END "</script></body></html>"
