@@ -1,3 +1,9 @@
 Makefile
+/autom4te.cache
 /config.h
+/config.log
+/config.status
+/src/.deps
 /src/stuph_temp_httpd
+/stamp-h1
+*.o
